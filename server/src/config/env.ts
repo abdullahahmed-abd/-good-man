@@ -5,6 +5,8 @@ import path from 'path';
 // Load .env if present
 dotenv.config();
 
+const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST !== undefined;
+
 const EnvSchema = z.object({
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -21,8 +23,23 @@ export type Env = z.infer<typeof EnvSchema>;
 
 let parsedEnv: Env;
 
+// In automated test environments (Vitest / CI), provide safe test defaults for DB and secrets
+const envInput = isTest
+  ? {
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insaan_test',
+      JWT_ACCESS_SECRET: 'test-jwt-access-secret-must-be-at-least-32-chars-long!',
+      JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-must-be-at-least-32-chars-long!',
+      FRONTEND_ORIGIN: 'http://localhost:5173',
+      APP_URL: 'http://localhost:5173',
+      RESEND_API_KEY: '',
+      PORT: 3001,
+      ...process.env
+    }
+  : process.env;
+
 try {
-  parsedEnv = EnvSchema.parse(process.env);
+  parsedEnv = EnvSchema.parse(envInput);
 } catch (error) {
   if (error instanceof z.ZodError) {
     console.error('\n❌ FATAL CONFIGURATION ERROR: Missing or invalid environment variables:');
