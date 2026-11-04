@@ -17,6 +17,7 @@ import db from '../../db/database';
 import { getTodayStr } from '../../utils/dateUtils';
 import sounds from '../../utils/soundEffects';
 import { useAppStore } from '../../store/useAppStore';
+import scheduleReminderService from '../../services/schedule/scheduleReminderService';
 
 export default function SchedulePage() {
   const addXp = useAppStore(state => state.addXp);
@@ -86,6 +87,9 @@ export default function SchedulePage() {
       const sessions = await db.pomodoroSessions.where('date').equals(todayStr).toArray();
       const totalMins = sessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
       setPomodoroMinsToday(totalMins);
+
+      // Reschedule reminders on native
+      scheduleReminderService.syncAllUpcomingReminders();
     } catch (e) {
       console.warn('Error loading schedule:', e);
     }
@@ -98,18 +102,30 @@ export default function SchedulePage() {
   const handleToggleTask = async (task) => {
     sounds.playTap();
     const updatedStatus = !task.isCompleted;
-    await db.scheduleTasks.update(task.id, { isCompleted: updatedStatus });
+    await db.scheduleTasks.update(task.id, { 
+      isCompleted: updatedStatus,
+      _dirty: 1,
+      updatedAt: new Date().toISOString()
+    });
     if (updatedStatus) {
       sounds.playSuccess();
       addXp(20, 'Completed scheduled discipline block');
+      await scheduleReminderService.cancelTaskReminder(task);
+    } else {
+      await scheduleReminderService.scheduleTaskReminder({ ...task, isCompleted: false });
     }
     loadScheduleData();
   };
 
-  const handleDeleteTask = async (taskId, e) => {
+  const handleDeleteTask = async (task, e) => {
     e.stopPropagation();
     sounds.playTap();
-    await db.scheduleTasks.delete(taskId);
+    await scheduleReminderService.cancelTaskReminder(task);
+    await db.scheduleTasks.update(task.id, {
+      deletedAt: new Date().toISOString(),
+      _dirty: 1,
+      updatedAt: new Date().toISOString()
+    });
     loadScheduleData();
   };
 
@@ -235,7 +251,7 @@ export default function SchedulePage() {
                 </div>
 
                 <button
-                  onClick={(e) => handleDeleteTask(task.id, e)}
+                  onClick={(e) => handleDeleteTask(task, e)}
                   className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                   title="Remove block"
                 >

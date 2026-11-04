@@ -5,6 +5,7 @@ import db from '../../db/database';
 import sounds from '../../utils/soundEffects';
 import { getTodayStr } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
+import scheduleReminderService from '../../services/schedule/scheduleReminderService';
 
 const CATEGORIES = [
   'Study & Philosophy',
@@ -30,7 +31,7 @@ export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
 
     try {
       const newTask = {
-        id: `task-${Date.now()}`,
+        id: crypto.randomUUID(),
         title: title.trim(),
         category,
         startTime,
@@ -39,10 +40,13 @@ export default function AddTaskModal({ isOpen, onClose, onTaskAdded }) {
         isRecurring,
         isCompleted: false,
         date: getTodayStr(),
+        _dirty: 1,
+        updatedAt: new Date().toISOString(),
         createdAt: Date.now()
       };
 
       await db.scheduleTasks.add(newTask);
+      await scheduleReminderService.scheduleTaskReminder(newTask);
       sounds.playSuccess();
       addXp(15, 'Scheduled a conscious discipline block');
       if (onTaskAdded) onTaskAdded(newTask);
