@@ -38,15 +38,19 @@ COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
 COPY server/package.json ./server/
 
+# Copy built shared package from builder so workspace linking has dist available
+COPY --from=builder /app/shared/dist ./shared/dist
+
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built outputs from builder
-COPY --from=builder /app/shared/dist ./shared/dist
+# Copy remaining built outputs from builder
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/server/drizzle ./server/drizzle
 
 # Set file ownership to non-root user
+RUN chown -R insaan:nodejs /app
+
 USER insaan
 
 EXPOSE 3001

@@ -218,10 +218,12 @@ npm --workspace=server run db:migrate
 2. Click **New +** > **Web Service** > Connect your GitHub repository.
 3. Configure the service:
    - **Name**: `insaan-api`
-   - **Root Directory**: `server`
-   - **Environment**: `Node` (or `Docker` using `server/Dockerfile`)
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `node dist/index.js`
+   - **Root Directory**: Leave blank if using Docker (`server/Dockerfile`), or `server` if using native Node
+   - **Environment**: `Docker` (recommended for full environment isolation) or `Node`
+   - **Dockerfile Path**: `server/Dockerfile`
+   - If using native Node:
+     - **Build Command**: `npm install && npm run build`
+     - **Start Command**: `node dist/index.js`
 4. Under **Environment Variables**, add:
    - `DATABASE_URL`: Your Neon connection string from Step 1.
    - `JWT_ACCESS_SECRET`: Generated secret (`openssl rand -hex 32`).
@@ -324,6 +326,8 @@ To test real-time cloud synchronization locally:
 | **Build Backend Server** | `npm --workspace=server run build` |
 | **Build Frontend PWA** | `npm run build` |
 | **Preview Built PWA** | `npm run preview` |
+| **Build Docker Container** | `docker build -f server/Dockerfile -t insaan-api .` |
+| **Run Docker Container** | `docker run --env-file server/.env -p 3001:3001 insaan-api` |
 | **Generate Drizzle Migrations** | `npm --workspace=server run db:generate` |
 | **Execute Migrations** | `npm --workspace=server run db:migrate` |
 
