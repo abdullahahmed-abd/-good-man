@@ -2,43 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { detectIosPlatform, checkIsStandalone } from './usePwaInstall';
 
 describe('usePwaInstall Hook & Detection Suite', () => {
-  const originalWindow = globalThis.window;
-  const originalNavigator = globalThis.navigator;
-
-  beforeEach(() => {
-    if (!globalThis.window) {
-      globalThis.window = {
-        navigator: {
-          userAgent: '',
-          platform: 'Win32',
-          maxTouchPoints: 0,
-          standalone: false
-        },
-        matchMedia: vi.fn().mockImplementation((query) => ({
-          matches: false,
-          media: query,
-          addEventListener: vi.fn(),
-          removeEventListener: vi.fn()
-        }))
-      };
-    }
-    if (!globalThis.navigator) {
-      globalThis.navigator = globalThis.window.navigator;
-    }
-  });
+  const originalNavigator = window.navigator;
 
   afterEach(() => {
     vi.restoreAllMocks();
-    if (originalWindow === undefined) {
-      delete globalThis.window;
-    } else {
-      globalThis.window = originalWindow;
-    }
-    if (originalNavigator === undefined) {
-      delete globalThis.navigator;
-    } else {
-      globalThis.navigator = originalNavigator;
-    }
   });
 
   describe('detectIosPlatform', () => {
@@ -198,3 +165,4 @@ describe('usePwaInstall Hook & Detection Suite', () => {
     });
   });
 });
+
