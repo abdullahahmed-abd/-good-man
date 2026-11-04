@@ -2,10 +2,40 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { detectIosPlatform, checkIsStandalone } from './usePwaInstall';
 
 describe('usePwaInstall Hook & Detection Suite', () => {
-  const originalNavigator = window.navigator;
+  const originalWindow = globalThis.window;
+  const originalNavigator = globalThis.navigator;
+
+  beforeEach(() => {
+    // Ensure window and navigator exist safely in Vitest Node environment
+    globalThis.window = {
+      navigator: {
+        userAgent: '',
+        platform: 'Win32',
+        maxTouchPoints: 0,
+        standalone: false
+      },
+      matchMedia: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn()
+      }))
+    };
+    globalThis.navigator = globalThis.window.navigator;
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    if (originalWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
+    if (originalNavigator === undefined) {
+      delete globalThis.navigator;
+    } else {
+      globalThis.navigator = originalNavigator;
+    }
   });
 
   describe('detectIosPlatform', () => {
@@ -63,7 +93,7 @@ describe('usePwaInstall Hook & Detection Suite', () => {
 
   describe('checkIsStandalone', () => {
     it('returns true when display-mode is standalone via matchMedia', () => {
-      window.matchMedia = vi.fn().mockImplementation((query) => ({
+      globalThis.window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: query === '(display-mode: standalone)',
         media: query,
         addEventListener: vi.fn(),
@@ -74,33 +104,27 @@ describe('usePwaInstall Hook & Detection Suite', () => {
     });
 
     it('returns true when navigator.standalone is true on iOS', () => {
-      window.matchMedia = vi.fn().mockImplementation((query) => ({
+      globalThis.window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn()
       }));
 
-      Object.defineProperty(window.navigator, 'standalone', {
-        value: true,
-        configurable: true
-      });
+      globalThis.window.navigator.standalone = true;
 
       expect(checkIsStandalone()).toBe(true);
     });
 
     it('returns false when in normal browser tab', () => {
-      window.matchMedia = vi.fn().mockImplementation((query) => ({
+      globalThis.window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn()
       }));
 
-      Object.defineProperty(window.navigator, 'standalone', {
-        value: false,
-        configurable: true
-      });
+      globalThis.window.navigator.standalone = false;
 
       expect(checkIsStandalone()).toBe(false);
     });
@@ -165,4 +189,3 @@ describe('usePwaInstall Hook & Detection Suite', () => {
     });
   });
 });
-
