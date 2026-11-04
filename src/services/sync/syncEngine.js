@@ -38,7 +38,7 @@ export const SERVER_TO_DEXIE_TABLE_MAP = Object.fromEntries(
 );
 
 // Map local object to server snake_case format
-function toServerRow(dexieTable, row) {
+export function toServerRow(dexieTable, row) {
   const serverRow = {
     id: row.id,
     client_updated_at: row.updatedAt || new Date().toISOString(),
@@ -62,7 +62,7 @@ function toServerRow(dexieTable, row) {
 }
 
 // Map server snake_case row to local Dexie format
-function toDexieRow(serverTable, row) {
+export function toDexieRow(serverTable, row) {
   const dexieRow = {
     id: row.id,
     updatedAt: row.client_updated_at,
@@ -88,6 +88,22 @@ function toDexieRow(serverTable, row) {
   }
 
   return dexieRow;
+}
+
+// 3-way merge conflict resolution decision helper:
+// returns 'keep_local' if local un-synced dirty edit is newer; otherwise 'apply_incoming'
+export function resolveSyncConflict(localRow, incomingRow) {
+  if (!localRow) return 'apply_incoming';
+  
+  if (localRow._dirty === 1) {
+    const localTime = localRow.updatedAt ? new Date(localRow.updatedAt).getTime() : 0;
+    const incomingTime = incomingRow.updatedAt ? new Date(incomingRow.updatedAt).getTime() : 0;
+    if (localTime > incomingTime) {
+      return 'keep_local';
+    }
+  }
+
+  return 'apply_incoming';
 }
 
 export const SyncStatus = {
@@ -264,15 +280,9 @@ class SyncEngine {
               const incoming = toDexieRow(serverTable, serverRow);
               const local = await db[dexieTable].get(incoming.id);
 
-              if (local) {
-                // Last-write-wins: apply only if incoming is newer OR local is not dirty
-                const localClientTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-                const incomingClientTime = new Date(incoming.updatedAt).getTime();
-
-                if (local._dirty === 1 && localClientTime > incomingClientTime) {
-                  // Keep local dirty edit!
-                  continue;
-                }
+              if (local && resolveSyncConflict(local, incoming) === 'keep_local') {
+                // Keep local un-synced dirty edit!
+                continue;
               }
 
               // Decrypt journal content if needed
