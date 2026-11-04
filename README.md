@@ -319,7 +319,126 @@ To test real-time cloud synchronization locally:
 
 ---
 
-## ⚠️ Platform Constraints & Technical Notes
+## 📱 Android Native App (Capacitor + Hardware Sensors)
+
+Insaan is fully convertible into an Android native application via Capacitor, providing **continuous 24/7 background hardware step counting** and **background Pomodoro focus timers** that survive phone locking, app minimize, and device reboots.
+
+### 🚀 Key Native Capabilities
+1. **Hardware Step Sensor (`Sensor.TYPE_STEP_COUNTER`)**:
+   - Zero CPU drain: uses dedicated sensor hub hardware counting.
+   - Android 14 `health` foreground service with persistent status notification: `Today: X steps | Y km | Z kcal | Goal N%`.
+   - Google Play Services Activity Recognition: automatically excludes vehicle and bicycle vibration steps (`IN_VEHICLE`, `ON_BICYCLE`).
+   - Hardware counter reboot recovery: preserves accumulated steps when raw counter resets to 0 upon device reboot.
+   - Midnight rollover: resets daily counter at 00:00:00 via `AlarmManager` without losing historical data.
+   - Offline-First sync: all native steps flow directly into Dexie IndexedDB with `_dirty: 1` for immediate cloud synchronization.
+
+2. **Background Pomodoro Timer**:
+   - Android 14 `specialUse` foreground service with live notification countdown and Pause/Resume/Stop actions.
+   - Exact alarms via `AlarmManager.setExactAndAllowWhileIdle`: fires sound and vibration alerts even in Android Doze mode.
+   - Persists start and target end timestamps: resilient to app kill, minimize, or background garbage collection.
+   - Auto-logs completed sessions into Dexie `pomodoroSessions` (`_dirty: 1`) and awards character XP.
+
+3. **Hardware Keystore Authentication**:
+   - Native refresh tokens are securely encrypted via Android Keystore (`EncryptedSharedPreferences`), preserving HttpOnly cookie security on web while preventing credential theft in native webviews.
+
+---
+
+### 📦 Download Pre-Built Debug APK (GitHub Actions)
+You do not need Android Studio installed to test Insaan on your physical Android phone:
+1. Go to the GitHub repository > **Actions** tab.
+2. Select the latest run of **"Android Build & Debug APK Release"** (or trigger it manually via **Run workflow**).
+3. Scroll down to the **Artifacts** section at the bottom of the page.
+4. Download the **`insaan-debug-apk`** ZIP archive and extract `app-debug.apk`.
+5. Transfer `app-debug.apk` to your phone or download directly through your mobile browser.
+
+---
+
+### 📲 Sideloading onto an Android Device
+1. Open the downloaded `app-debug.apk` on your phone.
+2. If prompted, tap **Settings** and enable **"Allow from this source"** for your browser or file manager.
+3. Tap **Install** and open **Insaan**.
+4. When prompted by the app:
+   - Grant **Physical Activity** (`ACTIVITY_RECOGNITION`) permission for continuous step counting.
+   - Grant **Notifications** (`POST_NOTIFICATIONS`) permission for persistent foreground status and Pomodoro alarms.
+   - Grant **Exact Alarms** (`SCHEDULE_EXACT_ALARM`) permission for Pomodoro timer wakeups.
+
+---
+
+### 🔋 OEM Battery Optimization Instructions (Prevent Background Killing)
+Aggressive manufacturer battery management software (OEM killers) can terminate background foreground services after several hours unless configured properly:
+
+#### 1. Samsung (One UI)
+- Open **Settings** > **Apps** > **Insaan** > **Battery**.
+- Select **Unrestricted** (default is "Optimized").
+- Go to **Settings** > **Battery** > **Background usage limits** > Ensure Insaan is added to **Never sleeping apps**.
+
+#### 2. Xiaomi / Redmi / POCO (MIUI / HyperOS)
+- Open **Settings** > **Apps** > **Manage Apps** > **Insaan**.
+- Enable **Autostart**.
+- Tap **Battery saver** > Select **No restrictions**.
+- Lock the app in the recent apps tray (swipe down on the app preview and tap the lock icon).
+
+#### 3. OnePlus / Oppo / Realme (OxygenOS / ColorOS)
+- Open **Settings** > **Apps** > **App Management** > **Insaan** > **Battery usage**.
+- Enable **Allow background activity** and **Allow auto-launch**.
+- Turn off **Optimize battery use** (select "Don't optimize").
+
+#### 4. Vivo / iQOO (FuntouchOS)
+- Open **Settings** > **Battery** > **Background power consumption management**.
+- Locate **Insaan** and choose **High background power usage**.
+- Go to **Settings** > **Apps** > **Autostart** > Enable **Insaan**.
+
+---
+
+### 🧪 Manual Testing Checklist for Physical Android Devices
+Follow this checklist to verify native hardware performance:
+
+| Step | Test Procedure | Expected Outcome |
+| :---: | :--- | :--- |
+| **1** | Install `app-debug.apk` on physical device. | App installs and launches with visionOS glass splash screen. |
+| **2** | Grant Physical Activity & Notification permissions. | Native permissions banner turns green; persistent notification appears in status bar. |
+| **3** | Walk 100 steps with app open. | Live counter increments smoothly with every step. |
+| **4** | Close app, lock screen, and walk 100 steps. | Status bar notification updates; opening app shows 200 total steps. |
+| **5** | Ride in a vehicle or bicycle for 5 minutes. | Google Play Activity Recognition detects transit; false vibration steps are rejected. |
+| **6** | Start a 25-min Pomodoro timer and lock screen. | Persistent chronometer notification counts down; exact alarm rings and vibrates at 00:00. |
+| **7** | Reboot phone. | Step service auto-restarts upon boot (`BootReceiver`); steps for the day are fully preserved. |
+
+---
+
+### ⚖️ Honest Technical Boundaries & Limitations
+- **Hardware Sensor Availability**: Background counting requires `Sensor.TYPE_STEP_COUNTER`. Budget devices or tablets lacking this sensor will fallback to standard accelerometer algorithms, which cannot track steps when the screen is locked and deep sleep occurs.
+- **Google Play Services Dependency**: Vehicle and bicycle step rejection relies on `com.google.android.gms.location.ActivityRecognitionClient`. Devices without Google Play Services (e.g. de-googled ROMs or non-GMS Huawei devices) will count raw steps without vehicular filtering.
+- **OEM Aggressive Doze**: Even with foreground services, extreme ultra-battery-saver modes (such as Samsung Ultra Power Saving or Xiaomi Extreme Battery Saver) will kill all background processes. Disabling battery optimizations as outlined above is essential.
+- **Android 14+ Strict Foreground Policies**: Android 14 enforces typed foreground services (`health` for pedometer, `specialUse` for Pomodoro). These are pre-configured in `AndroidManifest.xml` with required system properties.
+
+---
+
+### 💻 Local Android Development & Build Commands
+
+#### Prerequisites
+- Node.js 20+
+- JDK 17 (set `JAVA_HOME`)
+- Android SDK Platform 35 (`compileSdkVersion 35`, `minSdkVersion 26`)
+
+#### Commands
+```bash
+# 1. Build web application and synchronize with Capacitor Android
+npm run build
+npx cap sync android
+
+# 2. Compile and assemble debug APK directly from terminal
+npm run build:android
+# Or manually:
+cd android && ./gradlew assembleDebug
+
+# Output APK path:
+# android/app/build/outputs/apk/debug/app-debug.apk
+
+# 3. Open project in Android Studio (optional)
+npm run open:android
+```
+
+---
 
 1. **Browser Sensor Limitations in Standalone PWA Background Mode**:
    - Modern mobile operating systems (particularly iOS Safari) suspend JavaScript execution and sensor polling when the screen is locked or the app is minimized.
@@ -359,6 +478,8 @@ To test real-time cloud synchronization locally:
 | **Build Backend Server** | `npm --workspace=server run build` |
 | **Build Frontend PWA** | `npm run build` |
 | **Preview Built PWA** | `npm run preview` |
+| **Build Android Debug APK** | `npm run build:android` |
+| **Open Android Project in IDE** | `npm run open:android` |
 | **Build Docker Container** | `docker build -f server/Dockerfile -t insaan-api .` |
 | **Run Docker Container** | `docker run --env-file server/.env -p 3001:3001 insaan-api` |
 | **Generate Drizzle Migrations** | `npm --workspace=server run db:generate` |
