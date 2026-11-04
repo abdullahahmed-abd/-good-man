@@ -18,6 +18,10 @@
     "server:test": "npm --workspace=server run test"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1",
     "@insaan/shared": "*",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
@@ -35,6 +39,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.10",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.2",

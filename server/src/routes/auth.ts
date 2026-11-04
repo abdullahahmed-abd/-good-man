@@ -114,7 +114,8 @@ authRouter.post('/signup', async (c) => {
       isEmailVerified: newUser.isEmailVerified,
       createdAt: newUser.createdAt.toISOString()
     },
-    accessToken
+    accessToken,
+    refreshToken: rawRefreshToken
   }, 201);
 });
 
@@ -194,15 +195,28 @@ authRouter.post('/login', async (c) => {
       isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt.toISOString()
     },
-    accessToken
+    accessToken,
+    refreshToken: rawRefreshToken
   });
 });
 
 // 3. REFRESH TOKEN (Rotation with Reuse Detection)
 authRouter.post('/refresh', csrfProtectionMiddleware, async (c) => {
-  const rawRefreshToken = getRefreshTokenCookie(c);
+  let rawRefreshToken: string | undefined = getRefreshTokenCookie(c);
   if (!rawRefreshToken) {
-    throw new AppError('No refresh token provided in session cookie.', 401, 'NO_REFRESH_TOKEN');
+    rawRefreshToken = c.req.header('x-refresh-token') || undefined;
+  }
+  if (!rawRefreshToken) {
+    try {
+      const jsonBody = await c.req.json().catch(() => null);
+      if (jsonBody && typeof jsonBody.refreshToken === 'string') {
+        rawRefreshToken = jsonBody.refreshToken;
+      }
+    } catch (_) {}
+  }
+
+  if (!rawRefreshToken) {
+    throw new AppError('No refresh token provided in session cookie or X-Refresh-Token header.', 401, 'NO_REFRESH_TOKEN');
   }
 
   const tokenHash = hashToken(rawRefreshToken);
@@ -281,6 +295,7 @@ authRouter.post('/refresh', csrfProtectionMiddleware, async (c) => {
 
   return c.json({
     accessToken,
+    refreshToken: newRawRefreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -292,7 +307,19 @@ authRouter.post('/refresh', csrfProtectionMiddleware, async (c) => {
 
 // 4. LOGOUT (Single device)
 authRouter.post('/logout', csrfProtectionMiddleware, async (c) => {
-  const rawRefreshToken = getRefreshTokenCookie(c);
+  let rawRefreshToken: string | undefined = getRefreshTokenCookie(c);
+  if (!rawRefreshToken) {
+    rawRefreshToken = c.req.header('x-refresh-token') || undefined;
+  }
+  if (!rawRefreshToken) {
+    try {
+      const jsonBody = await c.req.json().catch(() => null);
+      if (jsonBody && typeof jsonBody.refreshToken === 'string') {
+        rawRefreshToken = jsonBody.refreshToken;
+      }
+    } catch (_) {}
+  }
+
   if (rawRefreshToken) {
     const db = getDb();
     await db.update(refreshTokens)

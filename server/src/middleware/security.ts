@@ -13,18 +13,29 @@ export const secureHeadersMiddleware: MiddlewareHandler = async (c, next) => {
   }
 };
 
+// Origin check helper supporting web frontend and Capacitor native apps
+export const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return false;
+  if (origin === env.FRONTEND_ORIGIN || env.FRONTEND_ORIGIN === '*') return true;
+  if (env.NODE_ENV === 'development') return true;
+  // Allow native Capacitor webview origins
+  if (origin === 'https://localhost' || origin === 'capacitor://localhost' || origin === 'http://localhost') {
+    return true;
+  }
+  return false;
+};
+
 // Strict CORS Middleware
 export const strictCorsMiddleware: MiddlewareHandler = async (c, next) => {
   const origin = c.req.header('origin');
-  const allowedOrigin = env.FRONTEND_ORIGIN;
 
   // Handle preflight
   if (c.req.method === 'OPTIONS') {
-    if (origin && (origin === allowedOrigin || allowedOrigin === '*' || env.NODE_ENV === 'development')) {
-      c.header('Access-Control-Allow-Origin', origin);
+    if (isAllowedOrigin(origin)) {
+      c.header('Access-Control-Allow-Origin', origin!);
       c.header('Access-Control-Allow-Credentials', 'true');
       c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Request-ID');
+      c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Request-ID, X-Refresh-Token');
       c.header('Access-Control-Max-Age', '86400');
       return c.body(null, 204);
     }
@@ -32,11 +43,9 @@ export const strictCorsMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   // Normal request
-  if (origin) {
-    if (origin === allowedOrigin || allowedOrigin === '*' || env.NODE_ENV === 'development') {
-      c.header('Access-Control-Allow-Origin', origin);
-      c.header('Access-Control-Allow-Credentials', 'true');
-    }
+  if (origin && isAllowedOrigin(origin)) {
+    c.header('Access-Control-Allow-Origin', origin);
+    c.header('Access-Control-Allow-Credentials', 'true');
   }
 
   await next();
@@ -67,7 +76,7 @@ export const csrfProtectionMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   // Check custom header or origin matching
-  if (!customHeader && (!origin || (origin !== env.FRONTEND_ORIGIN && env.NODE_ENV === 'production'))) {
+  if (!customHeader && (!origin || (!isAllowedOrigin(origin) && env.NODE_ENV === 'production'))) {
     return c.json({
       error: {
         code: 'CSRF_REJECTED',

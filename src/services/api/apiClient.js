@@ -1,11 +1,27 @@
+import { Capacitor } from '@capacitor/core';
+import { nativeSecureStorage } from '../security/nativeSecureStorage';
+
 /**
  * Production Insaan API Client
  * - In-memory access token storage (never localStorage)
  * - Single in-flight silent refresh promise on 401
  * - Automatic CSRF protection header (X-Requested-With)
  * - Credentials included for first-party httpOnly cookie transport
+ * - Hardware-keystore native refresh token fallback for Capacitor Android
  * - Cold-start retry logic for free tier cloud hosting
  */
+
+export const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  if (Capacitor.isNativePlatform()) {
+    // Default production cloud backend address for native Android app
+    return 'https://insaan-api.onrender.com';
+  }
+  return '';
+};
 
 class ApiClient {
   constructor() {
@@ -32,7 +48,13 @@ class ApiClient {
   }
 
   async request(path, options = {}, isRetry = false) {
-    const url = path.startsWith('http') ? path : `/api${path.startsWith('/') ? path : `/${path}`}`;
+    const baseUrl = getApiBaseUrl();
+    let normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    if (!normalizedPath.startsWith('/api') && !normalizedPath.startsWith('http')) {
+      normalizedPath = `/api${normalizedPath}`;
+    }
+
+    const url = normalizedPath.startsWith('http') ? normalizedPath : `${baseUrl}${normalizedPath}`;
 
     const headers = {
       'Content-Type': 'application/json',
@@ -44,10 +66,18 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
+    // Attach native hardware-backed refresh token on native Capacitor platform if available
+    if (Capacitor.isNativePlatform() && (normalizedPath.includes('/auth/logout') || normalizedPath.includes('/auth/refresh'))) {
+      const nativeToken = await nativeSecureStorage.getItem('insaan_refresh_token');
+      if (nativeToken && !headers['X-Refresh-Token']) {
+        headers['X-Refresh-Token'] = nativeToken;
+      }
+    }
+
     const fetchOptions = {
       ...options,
       headers,
-      credentials: 'include' // Sends httpOnly cookies
+      credentials: 'include' // Sends httpOnly cookies when available
     };
 
     // Cold-start detection timer
@@ -78,7 +108,13 @@ class ApiClient {
     }
 
     // Handle 401 Unauthorized -> Attempt Silent Refresh
-    if (response.status === 401 && !isRetry && !path.includes('/auth/login') && !path.includes('/auth/signup') && !path.includes('/auth/refresh')) {
+    if (
+      response.status === 401 &&
+      !isRetry &&
+      !normalizedPath.includes('/auth/login') &&
+      !normalizedPath.includes('/auth/signup') &&
+      !normalizedPath.includes('/auth/refresh')
+    ) {
       const refreshed = await this.silentRefresh();
       if (refreshed) {
         return this.request(path, options, true);
@@ -100,6 +136,16 @@ class ApiClient {
       throw errorObj;
     }
 
+    // On native platform, store refresh token securely in keystore
+    if (Capacitor.isNativePlatform() && data && typeof data === 'object') {
+      if (data.refreshToken) {
+        await nativeSecureStorage.setItem('insaan_refresh_token', data.refreshToken);
+      }
+      if (normalizedPath.includes('/auth/logout')) {
+        await nativeSecureStorage.removeItem('insaan_refresh_token');
+      }
+    }
+
     return data;
   }
 
@@ -111,23 +157,44 @@ class ApiClient {
 
     this.refreshPromise = (async () => {
       try {
-        const res = await fetch('/api/auth/refresh', {
+        const baseUrl = getApiBaseUrl();
+        const refreshUrl = `${baseUrl}/api/auth/refresh`;
+
+        let nativeToken = null;
+        if (Capacitor.isNativePlatform()) {
+          nativeToken = await nativeSecureStorage.getItem('insaan_refresh_token');
+        }
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+
+        if (nativeToken) {
+          headers['X-Refresh-Token'] = nativeToken;
+        }
+
+        const res = await fetch(refreshUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
+          headers,
+          body: nativeToken ? JSON.stringify({ refreshToken: nativeToken }) : undefined,
           credentials: 'include'
         });
 
         if (!res.ok) {
           this.accessToken = null;
+          if (Capacitor.isNativePlatform()) {
+            await nativeSecureStorage.removeItem('insaan_refresh_token');
+          }
           return false;
         }
 
         const data = await res.json();
         if (data.accessToken) {
           this.accessToken = data.accessToken;
+          if (Capacitor.isNativePlatform() && data.refreshToken) {
+            await nativeSecureStorage.setItem('insaan_refresh_token', data.refreshToken);
+          }
           return true;
         }
         return false;
