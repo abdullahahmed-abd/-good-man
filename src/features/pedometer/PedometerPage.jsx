@@ -4,6 +4,8 @@ import ProgressRing from '../../components/common/ProgressRing';
 import CalibrationModal from './CalibrationModal';
 import DiagnosticsModal from './DiagnosticsModal';
 import ManualStepModal from './ManualStepModal';
+import NativePermissionsModal from './NativePermissionsModal';
+import BatteryOptimizationModal from './BatteryOptimizationModal';
 import { 
   Activity, 
   Play, 
@@ -18,7 +20,9 @@ import {
   AlertTriangle,
   Car,
   Footprints,
-  ShieldCheck
+  ShieldCheck,
+  BatteryCharging,
+  Bike
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -30,6 +34,7 @@ import {
 } from 'recharts';
 import { usePedometerStore } from '../../store/usePedometerStore';
 import { useAppStore } from '../../store/useAppStore';
+import nativeStepService from '../../services/pedometer/nativeStepService';
 import db from '../../db/database';
 import { getTodayStr } from '../../utils/dateUtils';
 import sounds from '../../utils/soundEffects';
@@ -45,6 +50,7 @@ export default function PedometerPage() {
     motionState, 
     speedKmh, 
     wakeLockActive, 
+    isNativePlatform,
     toggleEngine, 
     toggleWakeLock 
   } = usePedometerStore();
@@ -53,8 +59,18 @@ export default function PedometerPage() {
   const [showCalibration, setShowCalibration] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showBatteryModal, setShowBatteryModal] = useState(false);
+  const [batteryStatus, setBatteryStatus] = useState({ isOptimized: false, isUnrestricted: true });
 
   const todayStr = getTodayStr();
+
+  // Check battery status when running native
+  useEffect(() => {
+    if (isNativePlatform) {
+      nativeStepService.checkBatteryOptimization().then(setBatteryStatus);
+    }
+  }, [isNativePlatform]);
 
   // Load today's hourly step data from Dexie
   useEffect(() => {
@@ -78,15 +94,23 @@ export default function PedometerPage() {
     loadHourly();
   }, [steps, todayStr]);
 
-  const percentGoal = Math.min(100, Math.round((steps / (user.stepGoal || 8000)) * 100));
+  const percentGoal = Math.min(100, Math.round((steps / (user?.stepGoal || 10000)) * 100));
 
   const getMotionBadge = () => {
-    switch (motionState) {
+    const state = (motionState || '').toUpperCase();
+    switch (state) {
+      case 'IN VEHICLE':
       case 'VEHICLE':
         return {
-          label: 'In Vehicle (Paused)',
+          label: 'In Vehicle (Steps Excluded)',
           color: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
           icon: Car
+        };
+      case 'BICYCLE':
+        return {
+          label: 'Cycling (Steps Excluded)',
+          color: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+          icon: Bike
         };
       case 'RUNNING':
         return {
@@ -119,41 +143,65 @@ export default function PedometerPage() {
         <div>
           <div className="flex items-center space-x-2 text-emerald-400 text-xs uppercase font-extrabold tracking-widest">
             <Footprints className="w-4 h-4" />
-            <span>Orientation-Independent Sensor Engine</span>
+            <span>
+              {isNativePlatform 
+                ? 'Android Health Foreground Service · Hardware Chip' 
+                : 'Orientation-Independent Sensor Engine'}
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
             Pedometer & Activity Matrix
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Real-time peak detection with dynamic thresholding and automatic vehicle rejection.
+            {isNativePlatform 
+              ? 'Hardware step counting with Google Play Services vehicle rejection.' 
+              : 'Real-time peak detection with dynamic thresholding and vehicle rejection.'}
           </p>
         </div>
 
         {/* Engine Start/Stop Action */}
         <div className="flex items-center space-x-2.5">
-          <button
-            onClick={() => {
-              sounds.playTap();
-              setShowCalibration(true);
-            }}
-            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5"
-            title="Calibrate Stride"
-          >
-            <Sliders className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">Calibrate</span>
-          </button>
+          {!isNativePlatform && (
+            <>
+              <button
+                onClick={() => {
+                  sounds.playTap();
+                  setShowCalibration(true);
+                }}
+                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5"
+                title="Calibrate Stride"
+              >
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Calibrate</span>
+              </button>
 
-          <button
-            onClick={() => {
-              sounds.playTap();
-              setShowDiagnostics(true);
-            }}
-            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5"
-            title="Sensor Oscilloscope"
-          >
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Diagnostics</span>
-          </button>
+              <button
+                onClick={() => {
+                  sounds.playTap();
+                  setShowDiagnostics(true);
+                }}
+                className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5"
+                title="Sensor Oscilloscope"
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Diagnostics</span>
+              </button>
+            </>
+          )}
+
+          {isNativePlatform && (
+            <button
+              onClick={() => {
+                sounds.playTap();
+                setShowBatteryModal(true);
+              }}
+              className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5"
+              title="Keep Steps Running"
+            >
+              <BatteryCharging className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Battery Tips</span>
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -181,6 +229,25 @@ export default function PedometerPage() {
         </div>
       </div>
 
+      {/* Native Android Battery Warning Banner if restricted */}
+      {isNativePlatform && batteryStatus.isOptimized && (
+        <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <BatteryCharging className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold text-white block">Battery Optimization Restricted</span>
+              <span className="text-slate-400 text-[11px]">Set battery to "Unrestricted" so Android doesn't kill the step counter in deep sleep.</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowBatteryModal(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold shrink-0 transition-all"
+          >
+            Fix Now
+          </button>
+        </div>
+      )}
+
       {/* Hero Spatial Card: Big Circular Progress Ring & Live Stats */}
       <SpatialCard className="flex flex-col md:flex-row items-center justify-around gap-8 py-8">
         {/* Large VisionOS Progress Ring */}
@@ -197,17 +264,19 @@ export default function PedometerPage() {
                 {steps.toLocaleString()}
               </span>
               <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold">
-                / {user.stepGoal.toLocaleString()} STEPS
+                / {(user?.stepGoal || 10000).toLocaleString()} STEPS
               </p>
               <div className="pt-1 flex items-center justify-center gap-1 text-emerald-400 font-bold text-xs">
                 <span>{percentGoal}% Goal</span>
-                <button
-                  onClick={() => setShowManualModal(true)}
-                  className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white"
-                  title="Manual Correction"
-                >
-                  <Edit3 className="w-3 h-3" />
-                </button>
+                {!isNativePlatform && (
+                  <button
+                    onClick={() => setShowManualModal(true)}
+                    className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white"
+                    title="Manual Correction"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
           </ProgressRing>
@@ -245,26 +314,41 @@ export default function PedometerPage() {
             </div>
           </div>
 
-          {/* Wake Lock & Browser Notice */}
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
-            <div className="flex items-center space-x-2.5">
-              <Sun className={`w-4 h-4 ${wakeLockActive ? 'text-amber-400' : 'text-slate-500'}`} />
-              <div className="text-left">
-                <span className="font-bold text-white block">Keep Screen Awake</span>
-                <span className="text-[10px] text-slate-400">Prevents browser throttling</span>
+          {/* Native Service or Wake Lock Notice */}
+          {isNativePlatform ? (
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2.5">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div className="text-left">
+                  <span className="font-bold text-white block">Persistent Health Service</span>
+                  <span className="text-[10px] text-slate-400">Counts steps in background with screen locked</span>
+                </div>
               </div>
+              <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                {isRunning ? 'Active' : 'Paused'}
+              </span>
             </div>
-            <button
-              onClick={toggleWakeLock}
-              className={`px-3 py-1 rounded-xl font-bold text-xs transition-all ${
-                wakeLockActive 
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
-                  : 'bg-white/10 text-slate-400 hover:text-white'
-              }`}
-            >
-              {wakeLockActive ? 'Active' : 'Enable'}
-            </button>
-          </div>
+          ) : (
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2.5">
+                <Sun className={`w-4 h-4 ${wakeLockActive ? 'text-amber-400' : 'text-slate-500'}`} />
+                <div className="text-left">
+                  <span className="font-bold text-white block">Keep Screen Awake</span>
+                  <span className="text-[10px] text-slate-400">Prevents browser throttling</span>
+                </div>
+              </div>
+              <button
+                onClick={toggleWakeLock}
+                className={`px-3 py-1 rounded-xl font-bold text-xs transition-all ${
+                  wakeLockActive 
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
+                    : 'bg-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                {wakeLockActive ? 'Active' : 'Enable'}
+              </button>
+            </div>
+          )}
         </div>
       </SpatialCard>
 
@@ -275,7 +359,7 @@ export default function PedometerPage() {
             <h3 className="font-bold text-white text-base">Today's Hourly Cadence</h3>
             <span className="text-xs text-slate-400">Step distribution throughout the day</span>
           </div>
-          <span className="text-xs text-emerald-400 font-bold">100% Persisted in IndexedDB</span>
+          <span className="text-xs text-emerald-400 font-bold">100% Persisted in Dexie</span>
         </div>
 
         <div className="w-full h-56 pt-2">
@@ -298,18 +382,32 @@ export default function PedometerPage() {
         </div>
       </SpatialCard>
 
-      {/* Browser Limitations and Background Notice Alert */}
-      <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-start space-x-3 text-xs text-slate-300">
-        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <span className="font-extrabold text-amber-300 block">
-            Offline PWA Notice: Mobile Browser Sensor Background Limits
-          </span>
-          <p className="leading-relaxed text-slate-400">
-            Due to privacy and battery security policies across modern mobile web browsers (Safari iOS and Chrome Android), the DeviceMotion accelerometer sensor API is paused when the screen turns completely off or the app is minimized. Insaan features continuous wake-lock support and smart step buffer persistence so the engine resumes cleanly without double-counting when you glance at your device.
-          </p>
+      {/* Platform Architecture Notice */}
+      {!isNativePlatform ? (
+        <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-start space-x-3 text-xs text-slate-300">
+          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-extrabold text-amber-300 block">
+              Offline PWA Notice: Mobile Browser Sensor Background Limits
+            </span>
+            <p className="leading-relaxed text-slate-400">
+              Due to privacy and battery security policies across modern mobile web browsers, the DeviceMotion accelerometer sensor API is paused when the screen turns off. On Android, run Insaan as a native app to count steps 24/7 with zero battery drain via hardware step counter chips.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-start space-x-3 text-xs text-slate-300">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-extrabold text-emerald-300 block">
+              Native Android Pedometer Engine Active
+            </span>
+            <p className="leading-relaxed text-slate-400">
+              Running Android 14 Health Foreground Service with direct hardware step counter sensor access. Steps and hourly buckets are written directly into Dexie IndexedDB and synced to cloud automatically. Device reboots, midnight rollovers, and vehicle intervals are handled automatically.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <CalibrationModal
@@ -326,7 +424,16 @@ export default function PedometerPage() {
         isOpen={showManualModal}
         onClose={() => setShowManualModal(false)}
       />
+
+      <NativePermissionsModal
+        isOpen={showPermissionsModal}
+        onClose={() => setShowPermissionsModal(false)}
+      />
+
+      <BatteryOptimizationModal
+        isOpen={showBatteryModal}
+        onClose={() => setShowBatteryModal(false)}
+      />
     </div>
   );
 }
-

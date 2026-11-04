@@ -20,15 +20,15 @@ Verification Status: **ALL PHASES & IN-APP PWA INSTALL COMPLETE & VERIFIED (60/6
 | **Phase 7** | Automated Test Suite | **DONE** | 60 total automated tests across backend (30) and frontend (30): PGlite harness, auth tests, sync tests, cross-user isolation tests across all 17 tables, sync engine tests, pedometer tests, character life score tests, and PWA install hook tests. |
 | **PWA Install Experience** | In-App PWA Install & SW Update | **DONE** | Spatial glass UI install experience: `usePwaInstall` hook with standalone detection, `PwaInstallButton` (compact for header, card for sidebar/settings), `PwaInstallModal` (iOS Safari step-by-step instructions and iOS third-party browser copy-link hint), `PwaInstallBanner` on dashboard (shown after 2nd visit, 14-day dismissal window), and `PwaUpdateToast` for instant updates and offline readiness. |
 | **Android Native Phase 1** | Capacitor Setup & CORS/Auth | **DONE** | `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/local-notifications`, `@capacitor/app`. Initialized `com.insaan.app`, `Insaan`, `dist`. Android project generated and verified with Gradle. `apiClient` direct backend URL resolution with `VITE_API_BASE_URL` fallback. Server CORS & CSRF enabled for `https://localhost` and `capacitor://localhost`. Hardware keystore bridge for native refresh token with zero web security regression. |
-| **Android Native Phase 2** | Native Step Engine (Kotlin Plugin) | **IN PROGRESS** | Custom Kotlin Capacitor plugin (`StepPlugin`), `Sensor.TYPE_STEP_COUNTER` hardware counting, Android 14 `health` foreground service, persistent notification, reboot & midnight rollover handling, Google Play Services Activity Recognition vehicle rejection, JS-to-Dexie sync. |
-| **Android Native Phase 3** | Background Pomodoro & Schedule Reminders | **NOT STARTED** | Foreground service chronometer notification, exact alarm via `AlarmManager.setExactAndAllowWhileIdle`, timestamp-based session persistence, local notifications for time blocks. |
+| **Android Native Phase 2** | Native Step Engine (Kotlin Plugin) | **DONE** | Custom Kotlin Capacitor plugin (`StepPlugin`), `Sensor.TYPE_STEP_COUNTER` hardware counting, Android 14 `health` foreground service, persistent notification with live stats, reboot (counter reset to 0) & midnight rollover handling, Google Play Services Activity Recognition vehicle rejection, JS-to-Dexie sync with `_dirty: 1`, OEM battery guides & permissions modals, zero double-counting. |
+| **Android Native Phase 3** | Background Pomodoro & Schedule Reminders | **IN PROGRESS** | Foreground service chronometer notification, exact alarm via `AlarmManager.setExactAndAllowWhileIdle`, timestamp-based session persistence, local notifications for time blocks. |
 | **Android Native Phase 4** | Build & Distribution | **NOT STARTED** | Icons, splash, `minSdk 26`, `targetSdk 35`, permissions, ProGuard rules, `build:android` npm scripts, GitHub Actions APK artifact workflow. |
 | **Android Native Phase 5** | Tests & Honesty | **NOT STARTED** | Pure Kotlin/TS unit tests for baseline/reboot/midnight and vehicle rejection, manual instrumented checklist, OEM battery guidance. |
 
 ---
 
 ## 2. IN PROGRESS
-- **Android Native Phase 2**: Native step engine Kotlin plugin, persistent health foreground service, reboot & midnight rollover, and activity recognition vehicle rejection.
+- **Android Native Phase 3**: Background Pomodoro timer with persistent chronometer notification, AlarmManager exact wakeup, and schedule time blocks local notifications.
 
 ---
 
