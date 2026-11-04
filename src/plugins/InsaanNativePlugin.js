@@ -17,3 +17,4 @@ export const InsaanNativePlugin = registerPlugin('InsaanNativePlugin', {
 });
 
 export default InsaanNativePlugin;
+

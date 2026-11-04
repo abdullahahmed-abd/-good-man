@@ -64,3 +64,4 @@ describe('Background Pomodoro & Schedule Timer Mathematics', () => {
     expect(scheduleDate.getMinutes()).toBe(30);
   });
 });
+

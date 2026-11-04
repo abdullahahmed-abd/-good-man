@@ -67,3 +67,4 @@ export default function NativePermissionsModal({ isOpen, onClose, onGranted }) {
     </Modal>
   );
 }
+

@@ -320,3 +320,4 @@ class StepService : Service(), SensorEventListener {
         const val ACTION_WATCHDOG_PING = "com.insaan.app.action.WATCHDOG_PING"
     }
 }
+

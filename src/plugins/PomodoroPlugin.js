@@ -20,3 +20,4 @@ export const PomodoroPlugin = registerPlugin('PomodoroPlugin', {
 });
 
 export default PomodoroPlugin;
+

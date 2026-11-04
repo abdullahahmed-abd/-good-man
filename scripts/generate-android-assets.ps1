@@ -86,3 +86,4 @@ Get-ChildItem -Path $resDir -Filter "splash.png" -Recurse | ForEach-Object {
 
 $src.Dispose()
 Write-Host "All Android icons and splash screens successfully generated!"
+
