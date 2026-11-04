@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded visionOS squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="128" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
+  
+  <!-- Outer Aura Glow -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#emerald)" stroke-width="3" opacity="0.3" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="130" fill="none" stroke="url(#gold)" stroke-width="2" stroke-dasharray="6 8" opacity="0.5"/>
+
+  <!-- Stylized Figure / Lotus / Star of Wisdom -->
+  <g transform="translate(256, 256)" filter="url(#glow)">
+    <!-- Head / Halo of Wisdom -->
+    <circle cx="0" cy="-80" r="32" fill="url(#gold)"/>
+    
+    <!-- Torso / Wings of Virtues -->
+    <path d="M-60,50 C-60,-20 -20,-40 0,-40 C20,-40 60,-20 60,50 C40,95 -40,95 -60,50 Z" fill="url(#emerald)"/>
+    
+    <!-- Open Book / Lotus Base -->
+    <path d="M-90,60 C-40,50 -10,75 0,95 C10,75 40,50 90,60 C70,110 20,120 0,105 C-20,120 -70,110 -90,60 Z" fill="url(#gold)" opacity="0.9"/>
+
+    <!-- Radiant Step / Momentum Path -->
+    <circle cx="-35" cy="40" r="5" fill="#ffffff" opacity="0.8"/>
+    <circle cx="0" cy="55" r="5" fill="#ffffff" opacity="0.8"/>
+    <circle cx="35" cy="40" r="5" fill="#ffffff" opacity="0.8"/>
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+name: CI - Insaan Quality & Integrity Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install All Monorepo Dependencies
+        run: npm ci
+
+      - name: Build Shared Schemas & Types
+        run: npm --workspace=shared run build
+
+      - name: Typecheck Backend Server
+        run: npm --workspace=server run typecheck
+
+      - name: Build Backend Server
+        run: npm --workspace=server run build
+
+      - name: Run Backend Unit & Integration Tests
+        run: npm --workspace=server test
+
+      - name: Build Frontend PWA (Vite + Workbox)
+        run: npm run build
+
+      - name: Run Frontend Tests
+        run: npm test
