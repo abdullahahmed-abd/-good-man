@@ -13,6 +13,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import sounds from '../../utils/soundEffects';
+import PwaInstallButton from '../common/PwaInstallButton';
 
 const SIDEBAR_ITEMS = [
   { to: '/', label: 'Overview', icon: Sparkles, desc: 'Daily Focus & Life Score' },
@@ -75,8 +76,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Quote Snippet */}
-      <div className="mt-auto pt-4 border-t border-white/10 px-2">
+      {/* Footer Quote Snippet & Install Prompt */}
+      <div className="mt-auto pt-4 border-t border-white/10 px-2 space-y-3">
+        <PwaInstallButton variant="card" />
+
         <div className="spatial-glass-subtle rounded-2xl p-3 border border-white/5">
           <p className="text-xs text-slate-300 italic font-serif-book">
             "Waste no more time arguing what a good person should be. Be one."

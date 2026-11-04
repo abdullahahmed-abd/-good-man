@@ -1,9 +1,9 @@
 # INSAAN — Progress & Verification Report
 
-Updated at: 2026-11-04T09:47:00+05:30  
+Updated at: 2026-11-04T12:45:00+05:30  
 Repository: Insaan Production PWA + Sovereign Offline Sync Backend  
-Branch: `backend-wip`  
-Verification Status: **ALL PHASES COMPLETED & VERIFIED (49/49 Tests Passing, Strict Typecheck 0 Errors, Production Builds Green)**
+Branch: `main`  
+Verification Status: **ALL PHASES & IN-APP PWA INSTALL COMPLETE & VERIFIED (60/60 Tests Passing, Strict Typecheck 0 Errors, Production Builds Green)**
 
 ---
 
@@ -17,7 +17,8 @@ Verification Status: **ALL PHASES COMPLETED & VERIFIED (49/49 Tests Passing, Str
 | **Phase 4** | Table-Driven Sync API | **DONE** | Centralized sync registry ([`server/src/db/syncRegistry.ts`](file:///d:/goodman/server/src/db/syncRegistry.ts)), `POST /sync/push` with atomic transactions, last-write-wins by `client_updated_at`, soft-delete tombstones, `GET /sync/pull` with cursor pagination on `(server_updated_at, id)`, `GET /sync/export` full export. Queries scoped by `userId` at repository level ([`server/src/services/syncRepository.ts`](file:///d:/goodman/server/src/services/syncRepository.ts)). |
 | **Phase 5** | Frontend Integration | **DONE** | Dexie schema v2 with UUID keys and `_dirty` outbox index ([`src/db/database.js`](file:///d:/goodman/src/db/database.js)), offline outbox engine with 3-way merge conflict resolution ([`src/services/sync/syncEngine.js`](file:///d:/goodman/src/services/sync/syncEngine.js)), in-memory token client with Render cold-start detection ([`src/services/api/apiClient.js`](file:///d:/goodman/src/services/api/apiClient.js)), optional Web Crypto AES-GCM + PBKDF2 (600,000 iterations) E2EE ([`src/services/security/cryptoE2EE.js`](file:///d:/goodman/src/services/security/cryptoE2EE.js)), Spatial UI components: `SyncStatusBadge`, `AuthModal`, `GuestMigrationDialog`, `AccountPage` at `/account`, `E2EESettings`. |
 | **Phase 6** | Deployment Artifacts | **DONE** | Cloudflare Pages Function Proxy ([`functions/api/[[path]].ts`](file:///d:/goodman/functions/api/[[path]].ts)) proxying `/api/*` to maintain first-party cookies across iOS Safari & PWAs, multi-stage production container ([`server/Dockerfile`](file:///d:/goodman/server/Dockerfile)), GitHub Actions CI workflow ([`.github/workflows/ci.yml`](file:///d:/goodman/.github/workflows/ci.yml)), comprehensive documentation ([`README.md`](file:///d:/goodman/README.md)). |
-| **Phase 7** | Automated Test Suite | **DONE** | 49 total automated tests across backend and frontend: in-memory PGlite PostgreSQL harness ([`server/src/test/setup.ts`](file:///d:/goodman/server/src/test/setup.ts)), auth tests (5), sync tests (7), cross-user isolation tests across all 17 tables (18), client sync engine tests (6), pedometer tests (10), character life score tests (3). |
+| **Phase 7** | Automated Test Suite | **DONE** | 60 total automated tests across backend (30) and frontend (30): PGlite harness, auth tests, sync tests, cross-user isolation tests across all 17 tables, sync engine tests, pedometer tests, character life score tests, and PWA install hook tests. |
+| **PWA Install Experience** | In-App PWA Install & SW Update | **DONE** | Spatial glass UI install experience: `usePwaInstall` hook with standalone detection, `PwaInstallButton` (compact for header, card for sidebar/settings), `PwaInstallModal` (iOS Safari step-by-step instructions and iOS third-party browser copy-link hint), `PwaInstallBanner` on dashboard (shown after 2nd visit, 14-day dismissal window), and `PwaUpdateToast` for instant updates and offline readiness. |
 
 ---
 

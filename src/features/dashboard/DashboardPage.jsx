@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import SpatialCard from '../../components/common/SpatialCard';
 import ProgressRing from '../../components/common/ProgressRing';
+import PwaInstallBanner from './PwaInstallBanner';
 import { useAppStore } from '../../store/useAppStore';
 import { usePedometerStore } from '../../store/usePedometerStore';
 import { calculateLifeScore, calculateCharacterRadar, getLevelInfo } from '../../utils/lifeScore';
@@ -191,6 +192,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
+      {/* Dismissible PWA Install Banner (Shown after 2nd visit, 14-day dismissal window) */}
+      <PwaInstallBanner />
+
       {/* Hero: Character Life Score & Radar Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Left: Spatial Score Card */}

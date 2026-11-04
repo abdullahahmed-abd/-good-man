@@ -248,6 +248,39 @@ npm --workspace=server run db:migrate
 
 ---
 
+## 📱 In-App PWA Installation & Update Lifecycle
+
+Insaan is built to be installed as a native-feeling standalone application across Android, iOS, Windows, macOS, and Linux, adhering strictly to the **visionOS spatial glass** design language.
+
+### 1. Installation Flow by Platform
+- **Android & Chromium Desktop (Chrome / Edge / Brave)**:
+  - Listens to the `beforeinstallprompt` event and captures the prompt.
+  - Tapping **Install App** triggers the native operating system installation dialogue.
+- **iOS Safari**:
+  - Automatically identifies Apple Safari on iPhone and iPad.
+  - Displays an interactive spatial glass modal guiding the user through 3 visual steps:
+    1. Tap the **Share** button (box with upward arrow) in Safari's bottom toolbar.
+    2. Scroll down and tap **"Add to Home Screen"** (`+`).
+    3. Tap **"Add"** in the top-right corner.
+- **iOS Third-Party Browsers (Chrome / Firefox / Edge / Opera on iOS)**:
+  - Detects iOS WebKit restrictions preventing third-party browsers from installing to the home screen.
+  - Prompts the user with an intuitive notice to open the page in Apple Safari, complete with a one-tap **Copy URL** button.
+- **Desktop Fallback (Firefox / Safari Mac without PWA support)**:
+  - Explains how to bookmark or install via browser settings (`Ctrl+D` / `Cmd+D`).
+
+### 2. UI Entry Points
+- **Top Header**: Compact glass button (`Install App`) placed alongside sync and connection indicators.
+- **Sidebar & Settings Page**: Dedicated spatial glass feature card highlighting offline benefits, instant pedometer access, and full-screen experience.
+- **Dashboard Banner**: Smart, non-intrusive glass banner displayed on or after the user's **2nd visit** (guarded with `sessionStorage` session counting). If dismissed, it suppresses itself for **14 days** using safe `localStorage` caching with error handling.
+- **Zero Distraction for Installed Users**: When running in standalone mode (`window.matchMedia('(display-mode: standalone)')` or iOS `navigator.standalone`), all installation triggers and banners are hidden.
+
+### 3. Service Worker Updates & Offline Notifications
+- Built with `vite-plugin-pwa` configured with `registerType: 'prompt'`.
+- **Offline Ready**: On first visit after service worker caching completes, a gentle spatial pill notifies the user: *"App is ready to work offline"*.
+- **Instant Updates**: When a new version is deployed to production, a floating glass notification prompts: *"New version available — Tap to update"*, reloading into the fresh service worker on demand.
+
+---
+
 ## 🧪 Testing Multi-Device Sync Between Two Browsers
 
 To test real-time cloud synchronization locally:

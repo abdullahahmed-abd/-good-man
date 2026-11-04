@@ -6,9 +6,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
+        id: '/',
         name: 'Insaan — Character, Philosophy & Pedometer',
         short_name: 'Insaan',
         description: 'Self-improvement app to help you become a good person through philosophy, books, habits, health and discipline.',
@@ -16,6 +17,7 @@ export default defineConfig({
         background_color: '#090d16',
         display: 'standalone',
         orientation: 'portrait-primary',
+        scope: '/',
         start_url: '/',
         icons: [
           {

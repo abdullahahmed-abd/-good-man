@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { usePedometerStore } from '../../store/usePedometerStore';
 import useAuthStore from '../../store/useAuthStore';
 import SyncStatusBadge from '../common/SyncStatusBadge';
+import PwaInstallButton from '../common/PwaInstallButton';
 import { getGreeting } from '../../utils/dateUtils';
 import { getLevelInfo } from '../../utils/lifeScore';
 import sounds from '../../utils/soundEffects';
@@ -85,6 +86,9 @@ export default function TopHeader() {
               </span>
             )}
           </NavLink>
+
+          {/* PWA Install Button (Compact header pill) */}
+          <PwaInstallButton variant="compact" />
 
           {/* Sync Status Badge */}
           <SyncStatusBadge />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import SpatialCard from '../../components/common/SpatialCard';
 import E2EESettings from './E2EESettings';
+import PwaInstallButton from '../../components/common/PwaInstallButton';
 import useAuthStore from '../../store/useAuthStore';
 import { 
   Settings, 
@@ -446,6 +447,9 @@ export default function SettingsPage() {
           </button>
         </div>
       </SpatialCard>
+
+      {/* PWA Home Screen Installation Card */}
+      <PwaInstallButton variant="card" />
 
       {/* PWA & Architecture Information */}
       <div className="p-4 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-between text-xs text-slate-400">

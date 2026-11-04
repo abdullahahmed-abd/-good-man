@@ -11,6 +11,7 @@ import { SEED_BOOKS, VIRTUES, BADGES } from '../../db/seedData';
 import OnboardingModal from '../../features/settings/OnboardingModal';
 import AuthModal from '../../features/auth/AuthModal';
 import GuestMigrationDialog from '../../features/auth/GuestMigrationDialog';
+import PwaUpdateToast from '../common/PwaUpdateToast';
 
 export default function AppLayout() {
   const initApp = useAppStore(state => state.initApp);
@@ -72,6 +73,9 @@ export default function AppLayout() {
       {/* Cloud Auth & Sync Modals */}
       <AuthModal />
       <GuestMigrationDialog />
+
+      {/* PWA Update & Offline-Ready Toast */}
+      <PwaUpdateToast />
     </div>
   );
 }
